@@ -16,9 +16,16 @@ jobs:
 
       - name: Extract ZIP
         run: |
-          mkdir -p extracted
+          rm -rf extracted
+          mkdir extracted
           unzip -q india-bihar-COMPLETE.zip -d extracted
-          cp -a extracted/india-bihar-COMPLETE/. .
+
+          if [ -d "extracted/india-bihar-COMPLETE" ]; then
+            cp -a extracted/india-bihar-COMPLETE/. .
+          else
+            cp -a extracted/. .
+          fi
+
           rm -rf extracted
 
       - name: Commit extracted files
