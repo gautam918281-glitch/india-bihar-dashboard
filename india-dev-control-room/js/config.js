@@ -7,8 +7,8 @@
  * Jab backend chal raha ho (http://127.0.0.1:8000) tab USE_API = true kar dena.
  */
 const CONFIG = {
-  USE_API: false,                          // baad mein true karna
-  API_BASE: "http://127.0.0.1:8000",       // backend URL
+  USE_API: true,
+API_BASE: "https://india-bihar-dashboard-production.up.railway.app",
   // Production pe baad mein yeh badlega, jaise:
   // API_BASE: "https://tumhara-backend.railway.app"
 };
