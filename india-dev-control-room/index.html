@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Bharat nagrik dashboard — simple for all, analysis for those who need depth." />
+  <title>🇮🇳 भारत नागरिक डैशबोर्ड</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <link rel="stylesheet" href="css/styles.css" />
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            navy: { 50:'#eef2ff',100:'#e0e7ff',700:'#4338ca',800:'#3730a3',900:'#1e1b4b',950:'#0f0a2e' },
+            saffron: { 500:'#f97316',600:'#ea580c' }
+          },
+          fontFamily: { sans: ['Inter', 'system-ui', 'Segoe UI', 'sans-serif'] }
+        }
+      }
+    }
+  </script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body class="bg-slate-100 text-slate-900 dark:bg-navy-950 dark:text-slate-100 font-sans antialiased">
+
+  <!-- Header -->
+  <header class="sticky top-0 z-50 border-b border-slate-200/80 dark:border-navy-800 bg-white/90 dark:bg-navy-900/90 backdrop-blur-md">
+    <div class="max-w-5xl mx-auto px-4 sm:px-6">
+      <div class="flex items-center justify-between h-14 gap-3">
+        <div class="flex items-center gap-2.5 min-w-0">
+          <div class="w-9 h-9 rounded-lg bg-navy-800 text-white flex items-center justify-center text-lg shrink-0">🇮🇳</div>
+          <div class="min-w-0">
+            <h1 class="text-sm sm:text-base font-bold tracking-tight truncate" data-i18n="title">भारत नागरिक डैशबोर्ड</h1>
+            <p class="text-[10px] sm:text-xs text-slate-500 truncate" data-i18n="subtitle">सरल आँकड़े · रुझान · तुलना</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-2 shrink-0">
+          <div class="flex rounded-lg border border-slate-200 dark:border-navy-700 overflow-hidden text-xs">
+            <button type="button" id="lang-en" class="px-2.5 py-1.5 font-medium" onclick="setLang('en')">EN</button>
+            <button type="button" id="lang-hi" class="px-2.5 py-1.5 font-medium bg-navy-800 text-white" onclick="setLang('hi')">हिं</button>
+          </div>
+          <button type="button" id="theme-toggle" class="p-2 rounded-lg border border-slate-200 dark:border-navy-700" aria-label="Theme">
+            <span class="dark:hidden">🌙</span><span class="hidden dark:inline">☀️</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div class="bg-emerald-50 dark:bg-emerald-950/40 border-b border-emerald-200/80 dark:border-emerald-800">
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 py-2 text-xs text-emerald-900 dark:text-emerald-200">
+      <strong>LIVE data</strong> — Official figures from MoSPI, NITI Aayog, Census/SRS (periods shown on each card). Some state indicators still pending.
+    </div>
+  </div>
+
+  <main class="max-w-5xl mx-auto px-4 sm:px-6 py-6 space-y-8">
+
+    <!-- Place -->
+    <section>
+      <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-3 mb-3">
+        <div>
+          <h2 class="text-xs font-semibold uppercase tracking-wider text-slate-500" data-i18n="choose_place">जगह चुनें</h2>
+          <p id="current-place" class="text-sm font-semibold text-navy-800 dark:text-indigo-300 mt-0.5"></p>
+        </div>
+        <p class="text-[11px] text-slate-500"><span data-i18n="last_update">अपडेट (डेमो):</span> 16 Sep 2026</p>
+      </div>
+      <div class="flex flex-col sm:flex-row gap-2">
+        <button type="button" id="btn-india" onclick="setLocation('india')"
+          class="sm:w-48 rounded-xl border-2 border-navy-800 bg-navy-800 text-white px-4 py-3 text-left font-semibold text-sm shadow-sm">
+          🇮🇳 <span data-i18n="india">भारत</span>
+          <span class="block text-[10px] font-normal opacity-80" data-i18n="national">राष्ट्रीय आँकड़े</span>
+        </button>
+        <select id="state-select" onchange="onStateChange(this.value)"
+          class="flex-1 rounded-xl border-2 border-slate-200 dark:border-navy-700 bg-white dark:bg-navy-900 px-3 py-3 text-sm font-semibold shadow-sm focus:ring-2 focus:ring-navy-700">
+          <option value="">— राज्य चुनें —</option>
+        </select>
+      </div>
+    </section>
+
+    <!-- Layer 1: Simple cards WITH mini sparkline -->
+    <section>
+      <div class="flex items-baseline justify-between gap-2 mb-3">
+        <h2 class="text-lg font-bold" data-i18n="key_for_you">ज़रूरी आँकड़े</h2>
+        <span class="text-[11px] text-slate-500" data-i18n="tap_card">कार्ड दबाएँ → चार्ट व मतलब</span>
+      </div>
+      <div id="kpi-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3"></div>
+    </section>
+
+    <!-- Layer 2: Smart flow (citizen + officer readable) -->
+    <section class="rounded-2xl border border-slate-200 dark:border-navy-800 bg-white dark:bg-navy-900 p-4 sm:p-5 shadow-sm">
+      <h2 class="text-base font-bold mb-1" data-i18n="smart_title">विकास की कड़ी</h2>
+      <p class="text-xs text-slate-500 mb-4" data-i18n="smart_sub">शिक्षा से लेकर बेहतर जीवन तक — हर चरण जुड़ा है। दबाकर आँकड़ा खोलें।</p>
+      <div id="smartart" class="flex flex-wrap items-center justify-center gap-1 sm:gap-2"></div>
+    </section>
+
+    <!-- Layer 3: Analysis for educated / office / gov users -->
+    <section class="rounded-2xl border border-slate-200 dark:border-navy-800 bg-white dark:bg-navy-900 p-4 sm:p-5 shadow-sm">
+      <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
+        <div>
+          <h2 class="text-base font-bold" data-i18n="analysis_title">विश्लेषण दृश्य</h2>
+          <p class="text-xs text-slate-500" data-i18n="analysis_sub">रुझान व तुलना — जगह बदलते ही चार्ट अपडेट</p>
+        </div>
+        <span class="text-[10px] px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-900/50">Official charts</span>
+      </div>
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div class="rounded-xl bg-slate-50 dark:bg-navy-950/50 border border-slate-100 dark:border-navy-800 p-3">
+          <h3 class="text-xs font-semibold text-slate-600 dark:text-slate-400 mb-2" id="chart1-title">Trend</h3>
+          <div class="relative h-52"><canvas id="chart-trend"></canvas></div>
+        </div>
+        <div class="rounded-xl bg-slate-50 dark:bg-navy-950/50 border border-slate-100 dark:border-navy-800 p-3">
+          <h3 class="text-xs font-semibold text-slate-600 dark:text-slate-400 mb-2" data-i18n="chart_compare">भारत vs राज्य</h3>
+          <div class="relative h-52"><canvas id="chart-bar"></canvas></div>
+        </div>
+        <div class="rounded-xl bg-slate-50 dark:bg-navy-950/50 border border-slate-100 dark:border-navy-800 p-3 lg:col-span-2">
+          <h3 class="text-xs font-semibold text-slate-600 dark:text-slate-400 mb-2" id="chart3-title">Inflation</h3>
+          <div class="relative h-44 max-w-2xl mx-auto"><canvas id="chart-inflation"></canvas></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Comparison table -->
+    <section>
+      <h2 class="text-base font-bold mb-3" data-i18n="compare_title">तालिका तुलना</h2>
+      <div class="overflow-x-auto rounded-xl border border-slate-200 dark:border-navy-800 bg-white dark:bg-navy-900 shadow-sm">
+        <table class="w-full text-sm min-w-[300px]">
+          <thead class="bg-slate-50 dark:bg-navy-800/50 text-left text-xs">
+            <tr>
+              <th class="px-4 py-3 font-semibold">सूचक</th>
+              <th class="px-4 py-3 font-semibold" data-i18n="india_val">भारत</th>
+              <th class="px-4 py-3 font-semibold" data-i18n="state_val">राज्य</th>
+            </tr>
+          </thead>
+          <tbody id="compare-body"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Guides -->
+    <section class="grid sm:grid-cols-2 gap-3">
+      <div class="p-4 rounded-xl bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 text-sm shadow-sm">
+        <p class="font-semibold mb-1" data-i18n="why_this">ये आँकड़े क्यों?</p>
+        <p class="text-xs text-slate-600 dark:text-slate-400 leading-relaxed" data-i18n="why_text"></p>
+      </div>
+      <div class="p-4 rounded-xl bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 text-sm shadow-sm">
+        <p class="font-semibold mb-1" data-i18n="how_read">कैसे पढ़ें</p>
+        <p class="text-xs text-slate-600 dark:text-slate-400 leading-relaxed" data-i18n="how_read_text"></p>
+      </div>
+    </section>
+
+    <section>
+      <h2 class="text-sm font-bold mb-2" data-i18n="sources">स्रोत (लाइव होने पर)</h2>
+      <p class="text-xs text-slate-500 leading-relaxed">MoSPI (CPI, PLFS) · Census of India · SRS · NITI Aayog · Ministry of Power</p>
+      <p class="text-[11px] text-amber-700 dark:text-amber-300 mt-1" data-i18n="api_note"></p>
+    </section>
+
+    <footer class="border-t border-slate-200 dark:border-navy-800 pt-4 pb-12 text-[11px] text-slate-500 text-center">
+      <p data-i18n="footer"></p>
+    </footer>
+  </main>
+
+  <!-- Detail modal: meaning + chart for THAT indicator -->
+  <div id="detail-modal" class="fixed inset-0 z-50 hidden items-end sm:items-center justify-center p-0 sm:p-4 bg-black/50">
+    <div class="bg-white dark:bg-navy-900 rounded-t-2xl sm:rounded-2xl max-w-lg w-full max-h-[92vh] overflow-y-auto shadow-2xl">
+      <div class="sticky top-0 bg-white dark:bg-navy-900 border-b border-slate-100 dark:border-navy-800 px-5 py-3 flex justify-between items-center">
+        <h3 id="modal-title" class="text-lg font-bold pr-4"></h3>
+        <button type="button" onclick="closeModal()" class="w-9 h-9 rounded-full bg-slate-100 dark:bg-navy-800 text-xl leading-none">×</button>
+      </div>
+      <div class="p-5 space-y-4 text-sm">
+        <div id="modal-body" class="space-y-3"></div>
+        <div class="rounded-xl bg-slate-50 dark:bg-navy-950/50 border border-slate-100 dark:border-navy-800 p-3">
+          <p class="text-xs font-semibold text-slate-500 mb-2" data-i18n="card_chart">इस आँकड़े का रुझान</p>
+          <div class="relative h-44"><canvas id="chart-detail"></canvas></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/config.js"></script>
+  <script src="js/i18n.js"></script>
+  <script src="js/data.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
