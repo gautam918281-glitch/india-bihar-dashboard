@@ -4,7 +4,11 @@ India + Bihar Dashboard
 """
 
 from datetime import datetime
+import ssl
 import httpx
+
+MOSPI_SSL_CONTEXT = ssl.create_default_context()
+MOSPI_SSL_CONTEXT.options |= ssl.OP_LEGACY_SERVER_CONNECT
 
 from app.database import SessionLocal
 from app.models import Observation, FetchLog
@@ -92,9 +96,11 @@ def fetch_bihar_inflation():
             }
 
             response = httpx.get(
-                MOSPI_CPI_URL,
-                params=params,
-                timeout=30,
+    MOSPI_CPI_URL,
+    params=params,
+    verify=MOSPI_SSL_CONTEXT,
+    timeout=30,
+            )
             )
 
             response.raise_for_status()
