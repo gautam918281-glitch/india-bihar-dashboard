@@ -101,7 +101,7 @@ def fetch_bihar_inflation():
     verify=MOSPI_SSL_CONTEXT,
     timeout=30,
             )
-            )
+            
 
             response.raise_for_status()
 
