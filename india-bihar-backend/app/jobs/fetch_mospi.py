@@ -1,21 +1,30 @@
 """
-Automatic data fetch jobs for India + Bihar Dashboard.
-
-HOW TO ACTIVATE (later):
-1. Get API key from https://www.data.gov.in
-2. Put it in .env → DATA_GOV_API_KEY=your_key
-3. Fill the real fetch functions below
-4. Run this file or schedule it
-
-Right now it is SAFE placeholder.
+Automatic MoSPI CPI data fetcher
+India + Bihar Dashboard
 """
 
 from datetime import datetime
-from app.database import SessionLocal, settings
+import httpx
+
+from app.database import SessionLocal
 from app.models import Observation, FetchLog
 
 
-def _save_observation(db, location, indicator_code, value, previous, change, period, source, source_url, frequency="Monthly"):
+MOSPI_CPI_URL = "https://api.mospi.gov.in/api/cpi/getCPIData"
+
+
+def _save_observation(
+    db,
+    location,
+    indicator_code,
+    value,
+    previous,
+    change,
+    period,
+    source,
+    source_url,
+    frequency="Monthly",
+):
     existing = (
         db.query(Observation)
         .filter(
@@ -25,6 +34,7 @@ def _save_observation(db, location, indicator_code, value, previous, change, per
         )
         .first()
     )
+
     if existing:
         existing.value = value
         existing.previous_value = previous
@@ -33,79 +43,196 @@ def _save_observation(db, location, indicator_code, value, previous, change, per
         existing.source_url = source_url
         existing.status = "live"
     else:
-        db.add(Observation(
-            location=location,
-            indicator_code=indicator_code,
-            value=value,
-            previous_value=previous,
-            change=change,
-            period=period,
-            source=source,
-            source_url=source_url,
-            frequency=frequency,
-            status="live",
-        ))
-
-
-def fetch_india_inflation():
-    """Fetch latest India CPI inflation. Placeholder until API key + endpoint ready."""
-    db = SessionLocal()
-    try:
-        # REAL CODE example (later):
-        # import httpx
-        # url = "https://api.data.gov.in/resource/XXXX"
-        # params = {"api-key": settings.DATA_GOV_API_KEY, "format": "json"}
-        # r = httpx.get(url, params=params, timeout=30)
-        # value = ...
-        # _save_observation(db, "india", "inflation", value, ...)
-
-        log = FetchLog(
-            source="MoSPI CPI",
-            status="pending",
-            message="Placeholder only. Add DATA_GOV_API_KEY + real endpoint to activate."
+        db.add(
+            Observation(
+                location=location,
+                indicator_code=indicator_code,
+                value=value,
+                previous_value=previous,
+                change=change,
+                period=period,
+                source=source,
+                source_url=source_url,
+                frequency=frequency,
+                status="live",
+            )
         )
-        db.add(log)
+
+
+def fetch_bihar_inflation():
+    db = SessionLocal()
+
+    try:
+        now = datetime.now()
+
+        months_to_try = []
+
+        for i in range(3):
+            month = now.month - i
+            year = now.year
+
+            if month <= 0:
+                month += 12
+                year -= 1
+
+            months_to_try.append((year, month))
+
+        result = None
+
+        for year, month in months_to_try:
+
+            params = {
+                "base_year": 2024,
+                "year": year,
+                "month_code": month,
+                "state_code": 6,
+                "sector_code": 3,
+                "limit": 20,
+                "page": 1,
+            }
+
+            response = httpx.get(
+                MOSPI_CPI_URL,
+                params=params,
+                timeout=30,
+            )
+
+            response.raise_for_status()
+
+            payload = response.json()
+
+            records = payload.get("data", [])
+
+            for record in records:
+                if (
+                    record.get("state") == "Bihar"
+                    and record.get("sector") == "Combined"
+                    and record.get("division") == "CPI (General)"
+                ):
+                    result = record
+                    break
+
+            if result:
+                break
+
+        if not result:
+            raise Exception("Latest Bihar CPI data not found")
+
+        value = result.get("inflation")
+
+        if value is None:
+            raise Exception("Inflation value missing")
+
+        value = float(value)
+
+        period = f"{result['year']}-{result['month']}"
+
+        _save_observation(
+            db=db,
+            location="bihar",
+            indicator_code="inflation",
+            value=value,
+            previous=None,
+            change=None,
+            period=period,
+            source="MoSPI CPI",
+            source_url=MOSPI_CPI_URL,
+            frequency="Monthly",
+        )
+
+        db.add(
+            FetchLog(
+                source="MoSPI CPI",
+                status="success",
+                message=(
+                    f"Bihar CPI updated: "
+                    f"{period}, inflation={value}%"
+                ),
+            )
+        )
+
         db.commit()
-        print(f"[{datetime.now()}] Inflation job: placeholder (not live yet)")
+
+        print(
+            f"[{datetime.now()}] "
+            f"Bihar CPI updated: {value}% ({period})"
+        )
+
         return True
+
     except Exception as e:
+
         db.rollback()
-        db.add(FetchLog(source="MoSPI CPI", status="failed", message=str(e)))
+
+        db.add(
+            FetchLog(
+                source="MoSPI CPI",
+                status="failed",
+                message=str(e),
+            )
+        )
+
         db.commit()
-        print("Inflation fetch failed:", e)
+
+        print("Bihar CPI fetch failed:", e)
+
         return False
+
     finally:
         db.close()
 
 
+def fetch_india_inflation():
+    return fetch_bihar_inflation()
+
+
 def fetch_india_unemployment():
-    """Placeholder for PLFS unemployment."""
+
     db = SessionLocal()
+
     try:
-        log = FetchLog(
-            source="MoSPI PLFS",
-            status="pending",
-            message="Placeholder — connect PLFS source later."
+
+        db.add(
+            FetchLog(
+                source="MoSPI PLFS",
+                status="pending",
+                message="PLFS integration not activated yet.",
+            )
         )
-        db.add(log)
+
         db.commit()
-        print(f"[{datetime.now()}] Unemployment job: placeholder")
+
+        print(
+            f"[{datetime.now()}] "
+            "Unemployment job: pending"
+        )
+
         return True
+
     except Exception as e:
+
         db.rollback()
+
         print("Unemployment fetch failed:", e)
+
         return False
+
     finally:
         db.close()
 
 
 def run_all_jobs():
-    print("=" * 50)
-    print("Running scheduled fetch jobs...")
+
+    print("=" * 60)
+    print("Running MoSPI data fetch jobs...")
+    print("=" * 60)
+
     fetch_india_inflation()
     fetch_india_unemployment()
+
+    print("=" * 60)
     print("All jobs finished.")
-    print("=" * 50)
+    print("=" * 60)
 
 
 if __name__ == "__main__":
