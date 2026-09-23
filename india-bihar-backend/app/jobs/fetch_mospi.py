@@ -136,7 +136,7 @@ def fetch_bihar_inflation():
 
         _save_observation(
             db=db,
-            location="bihar",
+            location="br",
             indicator_code="inflation",
             value=value,
             previous=None,
