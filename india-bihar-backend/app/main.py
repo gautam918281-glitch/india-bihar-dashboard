@@ -2,7 +2,8 @@ from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from typing import Optional
-
+import threading
+import time
 from app.database import get_db, settings, engine, Base
 from app.models import Observation, Indicator
 from app.schemas import ObservationOut, HealthResponse
@@ -25,7 +26,25 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+def automatic_mospi_fetch():
+    from app.jobs.fetch_mospi import fetch_bihar_inflation
 
+    while True:
+        try:
+            fetch_bihar_inflation()
+        except Exception as e:
+            print("Automatic MoSPI fetch failed:", e)
+
+        time.sleep(24 * 60 * 60)
+
+
+@app.on_event("startup")
+def start_automatic_mospi_fetch():
+    thread = threading.Thread(
+        target=automatic_mospi_fetch,
+        daemon=True
+    )
+    thread.start()
 
 @app.on_event("startup")
 def on_startup():
