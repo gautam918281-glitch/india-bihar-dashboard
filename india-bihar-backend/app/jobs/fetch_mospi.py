@@ -190,7 +190,122 @@ def fetch_bihar_inflation():
 
 
 def fetch_india_inflation():
-    return fetch_bihar_inflation()
+    db = SessionLocal()
+
+    try:
+        now = datetime.now()
+
+        months_to_try = []
+
+        for i in range(3):
+            month = now.month - i
+            year = now.year
+
+            if month <= 0:
+                month += 12
+                year -= 1
+
+            months_to_try.append((year, month))
+
+        result = None
+
+        for year, month in months_to_try:
+
+            params = {
+                "base_year": 2024,
+                "year": year,
+                "month_code": month,
+                "sector_code": 3,
+                "limit": 20,
+                "page": 1,
+            }
+
+            response = httpx.get(
+                MOSPI_CPI_URL,
+                params=params,
+                verify=MOSPI_SSL_CONTEXT,
+                timeout=30,
+            )
+
+            response.raise_for_status()
+
+            payload = response.json()
+            records = payload.get("data", [])
+
+            for record in records:
+                if (
+                    record.get("state") == "ALL India"
+                    and record.get("sector") == "Combined"
+                    and record.get("division") == "CPI (General)"
+                ):
+                    result = record
+                    break
+
+            if result:
+                break
+
+        if not result:
+            raise Exception("Latest India CPI data not found")
+
+        value = result.get("inflation")
+
+        if value is None:
+            raise Exception("Inflation value missing")
+
+        value = float(value)
+
+        period = f"{result['year']}-{result['month']}"
+
+        _save_observation(
+            db=db,
+            location="india",
+            indicator_code="inflation",
+            value=value,
+            previous=None,
+            change=None,
+            period=period,
+            source="MoSPI CPI",
+            source_url=MOSPI_CPI_URL,
+            frequency="Monthly",
+        )
+
+        db.add(
+            FetchLog(
+                source="MoSPI CPI",
+                status="success",
+                message=f"India CPI updated: {period}, inflation={value}%",
+            )
+        )
+
+        db.commit()
+
+        print(
+            f"[{datetime.now()}] "
+            f"India CPI updated: {value}% ({period})"
+        )
+
+        return True
+
+    except Exception as e:
+
+        db.rollback()
+
+        db.add(
+            FetchLog(
+                source="MoSPI CPI",
+                status="failed",
+                message=f"India CPI: {e}",
+            )
+        )
+
+        db.commit()
+
+        print("India CPI fetch failed:", e)
+
+        return False
+
+    finally:
+        db.close()
 
 
 def fetch_india_unemployment():
