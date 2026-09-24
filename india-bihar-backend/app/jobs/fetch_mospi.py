@@ -15,7 +15,7 @@ from app.models import Observation, FetchLog
 
 
 MOSPI_CPI_URL = "https://api.mospi.gov.in/api/cpi/getCPIData"
-
+MOSPI_CPI_SOURCE_URL = "https://www.mospi.gov.in/themes/price-statistics"
 
 def _save_observation(
     db,
@@ -143,7 +143,7 @@ def fetch_bihar_inflation():
             change=None,
             period=period,
             source="MoSPI CPI",
-            source_url=MOSPI_CPI_URL,
+            source_url=MOSPI_CPI_SOURCE_URL,
             frequency="Monthly",
         )
 
@@ -265,7 +265,7 @@ def fetch_india_inflation():
             change=None,
             period=period,
             source="MoSPI CPI",
-            source_url=MOSPI_CPI_URL,
+            source_url=MOSPI_CPI_SOURCE_URL,
             frequency="Monthly",
         )
 
