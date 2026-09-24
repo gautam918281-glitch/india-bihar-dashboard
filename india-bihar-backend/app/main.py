@@ -41,11 +41,7 @@ def automatic_mospi_fetch():
             print("Automatic MoSPI fetch failed:", e)
 
         time.sleep(24 * 60 * 60)
-        
-            print("Automatic MoSPI fetch failed:", e)
-
-        time.sleep(24 * 60 * 60)
-
+            
 
 @app.on_event("startup")
 def start_automatic_mospi_fetch():
