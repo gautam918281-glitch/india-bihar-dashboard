@@ -27,11 +27,16 @@ app.add_middleware(
     allow_headers=["*"],
 )
 def automatic_mospi_fetch():
-    from app.jobs.fetch_mospi import fetch_bihar_inflation
+def automatic_mospi_fetch():
+    from app.jobs.fetch_mospi import (
+        fetch_bihar_inflation,
+        fetch_india_inflation
+    )
 
     while True:
         try:
             fetch_bihar_inflation()
+            fetch_india_inflation()
         except Exception as e:
             print("Automatic MoSPI fetch failed:", e)
 
