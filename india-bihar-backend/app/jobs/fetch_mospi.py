@@ -38,13 +38,15 @@ def _save_observation(
         )
         .first()
     )
-    if previous is None:
+        if previous is None:
         previous_record = (
             db.query(Observation)
             .filter(
                 Observation.location == location,
                 Observation.indicator_code == indicator_code,
-                Observation.period != period,
+                Observation.id != (
+                    existing.id if existing else -1
+                ),
             )
             .order_by(Observation.id.desc())
             .first()
@@ -55,6 +57,7 @@ def _save_observation(
 
     if previous is not None:
         change = f"{value - previous:+.2f}"
+    
     if existing:
         existing.value = value
         existing.previous_value = previous
