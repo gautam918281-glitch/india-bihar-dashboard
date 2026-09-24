@@ -234,7 +234,7 @@ def fetch_india_inflation():
 
             for record in records:
                 if (
-                    record.get("state") == "ALL India"
+                    record.get("state") == "All India"
                     and record.get("sector") == "Combined"
                     and record.get("division") == "CPI (General)"
                 ):
