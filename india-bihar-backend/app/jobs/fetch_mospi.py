@@ -38,7 +38,8 @@ def _save_observation(
         )
         .first()
     )
-        if previous is None:
+
+    if previous is None:
         previous_record = (
             db.query(Observation)
             .filter(
@@ -57,7 +58,7 @@ def _save_observation(
 
     if previous is not None:
         change = f"{value - previous:+.2f}"
-    
+
     if existing:
         existing.value = value
         existing.previous_value = previous
@@ -80,7 +81,6 @@ def _save_observation(
                 status="live",
             )
         )
-
 
 def fetch_bihar_inflation():
     db = SessionLocal()
