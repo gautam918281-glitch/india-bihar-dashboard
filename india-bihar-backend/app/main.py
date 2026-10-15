@@ -34,14 +34,22 @@ def automatic_mospi_fetch():
     )
 
     while True:
+        print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Automatic MoSPI fetch started")
+
         try:
-            fetch_bihar_inflation()
-            fetch_india_inflation()
+            bihar_ok = fetch_bihar_inflation()
+            india_ok = fetch_india_inflation()
+
+            print(
+                f"Automatic MoSPI fetch finished: "
+                f"Bihar={'SUCCESS' if bihar_ok else 'FAILED'}, "
+                f"India={'SUCCESS' if india_ok else 'FAILED'}"
+            )
         except Exception as e:
-            print("Automatic MoSPI fetch failed:", e)
+            print(f"Automatic MoSPI fetch failed: {e}")
 
         time.sleep(24 * 60 * 60)
-            
+
 
 @app.on_event("startup")
 def start_automatic_mospi_fetch():
